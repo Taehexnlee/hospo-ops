@@ -1,0 +1,12 @@
+{
+  "ConnectionStrings": {
+    "Default": "Server=localhost,1433;Database=hospoops;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+  },
+  "Serilog": {
+    "MinimumLevel": "Information"
+  },
+  "Square": {
+    "WebhookSignatureKey": "replace-with-your-square-webhook-secret"
+  },
+  "AllowedHosts": "*"
+}

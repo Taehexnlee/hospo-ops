@@ -1,0 +1,43 @@
+using api.Data;
+using Microsoft.EntityFrameworkCore;
+using Serilog;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Serilog
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .WriteTo.Console()
+    .CreateLogger();
+builder.Host.UseSerilog();
+
+// DbContext
+var cs = builder.Configuration.GetConnectionString("Default");
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(cs));
+}
+else
+{
+    builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlServer(cs));
+}
+builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlServer(cs));
+
+// MVC/Swagger
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+app.UseSerilogRequestLogging();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.MapControllers();
+app.MapGet("/health", () => Results.Ok(new { ok = true, ts = DateTime.UtcNow }));
+
+app.Run();
