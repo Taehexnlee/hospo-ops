@@ -48,8 +48,8 @@ public class EodController(AppDbContext db) : ControllerBase
     }
 
     // GET /api/eod/{id}
-    [HttpGet("{id:long}")]
-    public async Task<IActionResult> GetById(long id)
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id)
     {
         var eod = await db.EodReports.FindAsync(id);
         return eod is null ? NotFound() : Ok(eod);
@@ -71,16 +71,24 @@ public class EodController(AppDbContext db) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] EodReportDto dto)
     {
-        // FluentValidation 자동 검사
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
-        if (!DateOnly.TryParse(dto.BizDate, out var d))
+        // 매장 존재 검사
+        var storeExists = await db.Stores.AnyAsync(s => s.Id == dto.StoreId);
+        if (!storeExists)
         {
-            ModelState.AddModelError("BizDate", "BizDate must be in yyyy-MM-dd format.");
+            ModelState.AddModelError("StoreId", "Store not found.");
             return ValidationProblem(ModelState);
         }
 
-        // 유니크 제약 (StoreId+BizDate) 중복 방지
+        // 날짜 형식 검사
+        if (!DateOnly.TryParse(dto.BizDate, out var d))
+        {
+            ModelState.AddModelError("BizDate", "BizDate must be in yyyy-MM-dd format (yyyy-MM-dd).");
+            return ValidationProblem(ModelState);
+        }
+
+        // 유니크 제약 (StoreId+BizDate)
         var exists = await db.EodReports.AnyAsync(e => e.StoreId == dto.StoreId && e.BizDate == d);
         if (exists) return Conflict(new { message = "EOD already exists for this store/date." });
 
@@ -100,20 +108,29 @@ public class EodController(AppDbContext db) : ControllerBase
     }
 
     // PUT /api/eod/{id}
-    [HttpPut("{id:long}")]
-    public async Task<IActionResult> Update(long id, [FromBody] EodReportDto dto)
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, [FromBody] EodReportDto dto)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
-        if (!DateOnly.TryParseExact(dto.BizDate, "yyyy-MM-dd", out var d))
-            return ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
-            {
-                ["BizDate"] = new[] { "BizDate must be in yyyy-MM-dd format (yyyy-MM-dd)." }
-            }));
+        // 매장 존재 검사
+        var storeExists = await db.Stores.AnyAsync(s => s.Id == dto.StoreId);
+        if (!storeExists)
+        {
+            ModelState.AddModelError("StoreId", "Store not found.");
+            return ValidationProblem(ModelState);
+        }
+
+        if (!DateOnly.TryParse(dto.BizDate, out var d))
+        {
+            ModelState.AddModelError("BizDate", "BizDate must be in yyyy-MM-dd format (yyyy-MM-dd).");
+            return ValidationProblem(ModelState);
+        }
 
         var eod = await db.EodReports.FindAsync(id);
         if (eod is null) return NotFound();
 
+        // (StoreId, BizDate) 중복 검사
         var duplicate = await db.EodReports
             .AnyAsync(e => e.Id != id && e.StoreId == dto.StoreId && e.BizDate == d);
         if (duplicate) return Conflict(new { message = "Another EOD already exists for this store/date." });
@@ -126,9 +143,10 @@ public class EodController(AppDbContext db) : ControllerBase
         await db.SaveChangesAsync();
         return Ok(eod);
     }
+
     // DELETE /api/eod/{id}
-    [HttpDelete("{id:long}")]
-    public async Task<IActionResult> Delete(long id)
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
     {
         var eod = await db.EodReports.FindAsync(id);
         if (eod is null) return NotFound();

@@ -18,4 +18,5 @@ public class AppDbContext(DbContextOptions<AppDbContext> opts) : DbContext(opts)
 
         b.Entity<EodReport>().HasIndex(x => new { x.StoreId, x.BizDate }).IsUnique();
     }
+    public DbSet<api.Models.Employee> Employees => Set<api.Models.Employee>();
 }

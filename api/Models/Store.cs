@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 // Models/Store.cs
 namespace api.Models;
 
@@ -8,4 +9,5 @@ public class Store
 
     // 역참조
     public List<EodReport> EodReports { get; set; } = new();
+    public List<api.Models.Employee> Employees { get; set; } = new();
 }
