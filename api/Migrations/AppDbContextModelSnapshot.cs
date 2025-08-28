@@ -85,9 +85,6 @@ namespace api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("ExternalId")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -95,6 +92,20 @@ namespace api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Stores", (string)null);
+                });
+
+            modelBuilder.Entity("api.Models.EodReport", b =>
+                {
+                    b.HasOne("api.Models.Store", null)
+                        .WithMany("EodReports")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("api.Models.Store", b =>
+                {
+                    b.Navigation("EodReports");
                 });
 #pragma warning restore 612, 618
         }

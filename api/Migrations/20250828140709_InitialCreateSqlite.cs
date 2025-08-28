@@ -12,23 +12,6 @@ namespace api.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "EodReports",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    StoreId = table.Column<int>(type: "INTEGER", nullable: false),
-                    BizDate = table.Column<DateOnly>(type: "TEXT", nullable: false),
-                    NetSales = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
-                    Tickets = table.Column<int>(type: "INTEGER", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_EodReports", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "SquareEvents",
                 columns: table => new
                 {
@@ -52,12 +35,34 @@ namespace api.Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    ExternalId = table.Column<string>(type: "TEXT", nullable: true)
+                    Name = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Stores", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EodReports",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    StoreId = table.Column<int>(type: "INTEGER", nullable: false),
+                    BizDate = table.Column<DateOnly>(type: "TEXT", nullable: false),
+                    NetSales = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
+                    Tickets = table.Column<int>(type: "INTEGER", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EodReports", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_EodReports_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
