@@ -1,3 +1,4 @@
+using Serilog.Events;
 using api.Infra;
 using NetEscapades.AspNetCore.SecurityHeaders;
 using System.Threading.RateLimiting;
@@ -9,9 +10,16 @@ using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using api.Data;
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .Enrich.FromLogContext()
+    .Enrich.WithEnvironmentName()
+    .Enrich.WithProcessId()
+    .Enrich.WithThreadId()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] ({CorrelationId}) {SourceContext} {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
-
 // Serilog (optional)
 builder.Host.UseSerilog((ctx, cfg) =>
 {
