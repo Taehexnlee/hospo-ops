@@ -25,7 +25,7 @@ jobs:
 
       - name: Test with coverage
         run: |
-          dotnet test api.tests/api.tests.csproj -c Release --no-build -v minimal \
+          dotnet test api.tests/api.tests.csproj -c Release -v minimal \
             /p:CollectCoverage=true \
             /p:CoverletOutputFormat=cobertura \
             "/p:ExcludeByFile=**/Migrations/*"
