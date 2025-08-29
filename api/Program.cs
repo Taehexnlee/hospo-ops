@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -53,11 +55,12 @@ builder.Services.AddOpenTelemetry()
     .ConfigureResource(rb => rb.AddService(serviceName: "hospo-ops", serviceVersion: "1.0.0"))
     .WithTracing(b =>
     {
-        b.AddAspNetCoreInstrumentation(o =>
-        {
-            o.RecordException = true;
-            o.Filter = _ => true;
-        });
+        b.AddAspNetCoreInstrumentation(o => {
+    o.RecordException = true;
+    o.Filter = ctx =>
+        !ctx.Request.Path.StartsWithSegments("/health") &&
+        !ctx.Request.Path.StartsWithSegments("/swagger");
+});
         b.AddHttpClientInstrumentation();
         if (builder.Environment.IsDevelopment())
         {
@@ -68,9 +71,10 @@ builder.Services.AddOpenTelemetry()
     {
         m.AddAspNetCoreInstrumentation();
         m.AddHttpClientInstrumentation();
-        if (builder.Environment.IsDevelopment())
-        {
+        if (builder.Environment.IsDevelopment()) {
             m.AddConsoleExporter();
+        } else {
+            m.AddOtlpExporter();
         }
     });
 // === /OpenTelemetry ===
