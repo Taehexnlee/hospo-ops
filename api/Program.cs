@@ -1,3 +1,6 @@
+using OpenTelemetry.Trace;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using Serilog.Events;
 using api.Infra;
 using NetEscapades.AspNetCore.SecurityHeaders;
@@ -44,6 +47,34 @@ else
 
 // MVC
 builder.Services.AddControllers().AddJsonOptions(o => { o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; });
+
+// === OpenTelemetry (Tracing + Metrics) ===
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(rb => rb.AddService(serviceName: "hospo-ops", serviceVersion: "1.0.0"))
+    .WithTracing(b =>
+    {
+        b.AddAspNetCoreInstrumentation(o =>
+        {
+            o.RecordException = true;
+            o.Filter = _ => true;
+        });
+        b.AddHttpClientInstrumentation();
+        if (builder.Environment.IsDevelopment())
+        {
+            b.AddConsoleExporter();
+        }
+    })
+    .WithMetrics(m =>
+    {
+        m.AddAspNetCoreInstrumentation();
+        m.AddHttpClientInstrumentation();
+        if (builder.Environment.IsDevelopment())
+        {
+            m.AddConsoleExporter();
+        }
+    });
+// === /OpenTelemetry ===
+
 builder.Services.AddCors(o => o.AddPolicy("dev", p => p
     .WithOrigins("http://localhost:3000")
     .AllowAnyHeader()
