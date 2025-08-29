@@ -32,8 +32,24 @@ public class ValidationProblemDetailsTests : IClassFixture<TestFactory>
                 _ => throw new System.Exception("Unexpected stores list shape")
             };
 
-            storeId = items[0].GetProperty("id").GetInt32();
-        }
+            
+    if (items.ValueKind == JsonValueKind.Array && items.GetArrayLength() > 0)
+            {
+                storeId = items[0].GetProperty("id").GetInt32();
+            }
+            else
+            {
+                var create = new HttpRequestMessage(HttpMethod.Post, "/api/stores");
+                create.Headers.Add("X-Api-Key", "dev-super-secret");
+                var name = "Test Store " + System.Guid.NewGuid().ToString("N").Substring(0, 8);
+                create.Content = JsonContent.Create(new { name });
+                var cRes = await _client.SendAsync(create);
+                cRes.EnsureSuccessStatusCode();
+                var cJson = await cRes.Content.ReadAsStringAsync();
+                using var cDoc = JsonDocument.Parse(cJson);
+                storeId = cDoc.RootElement.GetProperty("id").GetInt32();
+            }
+}
 
         // 2) 음수 매출로 생성 시도 -> 400 + problem+json
         var bad = new HttpRequestMessage(HttpMethod.Post, "/api/eod");
