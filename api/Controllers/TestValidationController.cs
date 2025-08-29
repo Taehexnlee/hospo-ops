@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using api.Models;
 
@@ -5,6 +6,7 @@ namespace api.Controllers;
 
 [ApiController]
 [Route("api/test-validation")]
+[EnableRateLimiting("api")]
 public class TestValidationController : ControllerBase
 {
     [HttpPost]

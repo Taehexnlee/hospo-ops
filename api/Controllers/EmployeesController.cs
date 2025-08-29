@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using api.Data;
@@ -7,6 +8,7 @@ namespace api.Controllers;
 
 [ApiController]
 [Route("api/employees")]
+[EnableRateLimiting("api")]
 public class EmployeesController(AppDbContext db) : ControllerBase
 {
     // GET /api/employees?storeId=1&active=true&page=1&pageSize=50&name=lee

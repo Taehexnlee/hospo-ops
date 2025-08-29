@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
@@ -42,6 +43,7 @@ public class CorrelationIdMiddleware
 
         using (_logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = cid! }))
         {
+            Activity.Current?.SetTag("correlation.id", cid!);
             await _next(ctx);
 
             // 파이프라인 어딘가가 헤더를 제거/덮었을 때를 대비한 2차 보장

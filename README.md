@@ -1,15 +1,15 @@
-Hospo-Ops API
+# Hospo-Ops API
 
-Overview
-
+## Overview
 Hospo-Ops is a restaurant operations management API built with .NET 8 WebAPI and EF Core.
 The project is currently in the MVP stage and focuses on the EOD (End of Day) reporting system.
-	•	Development DB: SQLite (lightweight & cross-platform)
-	•	Production DB: SQL Server (planned for deployment)
+- Development DB: SQLite (lightweight & cross-platform)
+- Production DB: SQL Server (planned for deployment)
+
 
 ⸻
 
-Quick Start
+## Quick Start
 
 0. Prerequisites
 	•	.NET 8 SDK
@@ -34,7 +34,7 @@ dotnet run
 	•	Example Endpoint → http://localhost:5047/api/eod/1/2025-08-27
 
 ⸻
-Project Structure
+## Project Structure
 
 hospo-ops/
  └── api/              # .NET WebAPI project
@@ -53,6 +53,36 @@ Roadmap
 	•	Switch to SQL Server in production
 	•	Deploy to Azure
 
-License
+## Features
+### ✅ Domain Modules
+- Stores – CRUD with unique store name enforcement, cascading deletes.
+- Employees – CRUD with store-level validation, hire date & role validation, paging & filtering.
+- EOD Reports – CRUD with store+date uniqueness, validation, and cascade on delete.
 
+### ⚙️ Validation & Error Handling
+- FluentValidation integrated (auto-validation at controller level).
+- Automatic `400 Bad Request` with descriptive error details.
+
+### 📊 Observability (New)
+- Serilog structured logging with correlation ID
+- OpenTelemetry (ASP.NET Core + HttpClient)
+  - Console exporter in development
+  - OTLP exporter in production
+  - Resource attributes: `deployment.environment`, `service.instance.id`
+  - Filters out noisy endpoints (`/health`, `/swagger`)
+- CorrelationId middleware: every request/response carries `X-Correlation-Id`
+
+---
+
+## Roadmap
+- MVP Setup (SQLite + EF Core)
+- EOD Report CRUD
+- Square API integration
+- AI-powered daily sales analysis
+- Switch to SQL Server in production
+- Deploy to Azure
+
+---
+
+## License
 MIT

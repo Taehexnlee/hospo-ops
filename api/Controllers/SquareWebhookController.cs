@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ namespace api.Controllers;
 
 [ApiController]
 [Route("square/webhook")]
+[EnableRateLimiting("api")]
 public class SquareWebhookController(AppDbContext db, IConfiguration cfg, ILogger<SquareWebhookController> logger) : ControllerBase
 {
     [HttpPost]
