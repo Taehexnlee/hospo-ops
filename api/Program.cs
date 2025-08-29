@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using Microsoft.OpenApi.Models;
+using api.Middleware;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
@@ -29,7 +32,12 @@ else
 }
 
 // MVC
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(o => { o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; });
+builder.Services.AddCors(o => o.AddPolicy("dev", p => p
+    .WithOrigins("http://localhost:3000")
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+));
 
 // ✅ FluentValidation v11 권장 등록 방식
 builder.Services.AddFluentValidationAutoValidation();           // ModelState 자동 검증
@@ -37,9 +45,25 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>(); // 어셈블리
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c => {
+  c.SwaggerDoc("v1", new OpenApiInfo { Title = "HospoOps API", Version = "v1" });
+  c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme {
+    Description = "Provide your X-Api-Key",
+    In = ParameterLocation.Header,
+    Name = "X-Api-Key",
+    Type = SecuritySchemeType.ApiKey
+  });
+  c.AddSecurityRequirement(new OpenApiSecurityRequirement {
+    { new OpenApiSecurityScheme {
+        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ApiKey" }
+      }, new string[] {} }
+  });
+});
 
 var app = builder.Build();
+app.UseMiddleware<api.Infra.GlobalExceptionMiddleware>();
+app.UseCors("dev");
+app.UseMiddleware<DevApiKeyMiddleware>();
 app.UseSerilogRequestLogging();
 
 if (app.Environment.IsDevelopment())
@@ -52,3 +76,4 @@ app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { ok = true, ts = DateTime.UtcNow }));
 
 app.Run();
+public partial class Program { }
