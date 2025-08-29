@@ -1,3 +1,5 @@
+using api.Infra;
+using NetEscapades.AspNetCore.SecurityHeaders;
 using System.Threading.RateLimiting;
 using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;
@@ -78,6 +80,10 @@ builder.Services.AddRateLimiter(options => {
 
 var app = builder.Build();
 
+
+app.UseMiddleware<api.Infra.CorrelationIdMiddleware>();
+app.UseSecurityHeaders();
+app.UseCors("default");
 app.UseSerilogRequestLogging();
 app.UseRateLimiter();
 
