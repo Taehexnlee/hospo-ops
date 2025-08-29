@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;
 using api.Middleware;
@@ -60,12 +61,32 @@ builder.Services.AddSwaggerGen(c => {
   });
 });
 
+builder.Services.AddRateLimiter(options => {
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("api", httpContext =>
+      RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anon",
+        factory: key => new FixedWindowRateLimiterOptions {
+          PermitLimit = 30,
+          Window = TimeSpan.FromSeconds(10),
+          AutoReplenishment = true,
+          QueueLimit = 0
+        }
+      )
+    );
+  });
+
 var app = builder.Build();
+
+app.UseSerilogRequestLogging();
+app.UseRateLimiter();
+
 app.UseMiddleware<api.Infra.GlobalExceptionMiddleware>();
 app.UseCors("dev");
 app.UseMiddleware<DevApiKeyMiddleware>();
 app.UseSerilogRequestLogging();
 
+app.UseRateLimiter();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
