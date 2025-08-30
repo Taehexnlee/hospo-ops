@@ -1,26 +1,28 @@
 # Hospo-Ops API
 
 ## Overview
-Hospo-Ops is a restaurant operations management API built with .NET 8 WebAPI and EF Core.
+Hospo-Ops is a restaurant operations management API built with .NET 8 WebAPI and EF Core.  
 The project is currently in the MVP stage and focuses on the EOD (End of Day) reporting system.
+
 - Development DB: SQLite (lightweight & cross-platform)
 - Production DB: SQL Server (planned for deployment)
 
-
-⸻
+---
 
 ## Quick Start
 
-0. Prerequisites
-	•	.NET 8 SDK
-	•	(Optional) SQLite CLI for inspecting the local DB
+0. **Prerequisites**
+   - .NET 8 SDK
+   - (Optional) SQLite CLI for inspecting the local DB
 
-1. Restore & Build
-cd api
-dotnet restore
-dotnet build -c Debug
+1. **Restore & Build**
+   ```bash
+   cd api
+   dotnet restore
+   dotnet build -c Debug
 
 2. Apply Migrations & Create DB
+
 dotnet new tool-manifest 2>/dev/null || true
 dotnet tool install dotnet-ef --version "9.0.8" 2>/dev/null || dotnet tool update dotnet-ef --version "9.0.8"
 
@@ -44,6 +46,47 @@ hospo-ops/
      ├── Migrations/   # EF Core migrations
      └── Program.cs    # App startup
 
+Roadmap
+	•	MVP Setup (SQLite + EF Core)
+	•	EOD Report CRUD
+	•	Square API integration
+	•	AI-powered daily sales analysis
+	•	Switch to SQL Server in production
+	•	Deploy to Azure
+
+Features
+
+✅ Domain Modules
+	•	Stores – CRUD with unique store name enforcement, cascading deletes.
+	•	Employees – CRUD with store-level validation, hire date & role validation, paging & filtering.
+	•	EOD Reports – CRUD with store+date uniqueness, validation, and cascade on delete.
+
+⚙️ Validation & Error Handling
+	•	FluentValidation integrated (auto-validation at controller level).
+	•	Automatic 400 Bad Request with descriptive error details.
+
+📊 Observability
+	•	Serilog structured logging with correlation ID
+	•	OpenTelemetry (ASP.NET Core + HttpClient)
+	•	Console exporter in development
+	•	OTLP exporter in production
+	•	Resource attributes: deployment.environment, service.instance.id
+	•	Filters out noisy endpoints (/health, /swagger)
+	•	CorrelationId middleware: every request/response carries X-Correlation-Id
+
+🔐 Security & CORS (New)
+	•	API Key authentication via X-Api-Key header
+	•	Secure preflight (OPTIONS) handling:
+	•	Allows only configured origins (e.g., http://localhost:3000)
+	•	Returns 204 No Content for valid preflight requests
+	•	Blocks unauthorized origins
+	•	Strict security headers:
+	•	X-Frame-Options: DENY
+	•	X-Content-Type-Options: nosniff
+	•	Referrer-Policy: strict-origin-when-cross-origin
+	•	Content-Security-Policy: object-src 'none'; form-action 'self'; frame-ancestors 'none'
+
+⸻
 
 Roadmap
 	•	MVP Setup (SQLite + EF Core)
@@ -53,36 +96,6 @@ Roadmap
 	•	Switch to SQL Server in production
 	•	Deploy to Azure
 
-## Features
-### ✅ Domain Modules
-- Stores – CRUD with unique store name enforcement, cascading deletes.
-- Employees – CRUD with store-level validation, hire date & role validation, paging & filtering.
-- EOD Reports – CRUD with store+date uniqueness, validation, and cascade on delete.
+License
 
-### ⚙️ Validation & Error Handling
-- FluentValidation integrated (auto-validation at controller level).
-- Automatic `400 Bad Request` with descriptive error details.
-
-### 📊 Observability (New)
-- Serilog structured logging with correlation ID
-- OpenTelemetry (ASP.NET Core + HttpClient)
-  - Console exporter in development
-  - OTLP exporter in production
-  - Resource attributes: `deployment.environment`, `service.instance.id`
-  - Filters out noisy endpoints (`/health`, `/swagger`)
-- CorrelationId middleware: every request/response carries `X-Correlation-Id`
-
----
-
-## Roadmap
-- MVP Setup (SQLite + EF Core)
-- EOD Report CRUD
-- Square API integration
-- AI-powered daily sales analysis
-- Switch to SQL Server in production
-- Deploy to Azure
-
----
-
-## License
 MIT
