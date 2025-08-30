@@ -1,5 +1,4 @@
 name: CI
-
 on:
   push:
     branches: [ "main" ]
@@ -23,9 +22,10 @@ jobs:
       - name: Build
         run: dotnet build --no-restore -c Release
 
-      - name: Test with coverage
+      - name: Test with coverage (exclude RateLimitTests)
         run: |
-          dotnet test api.tests/api.tests.csproj -c Release -v minimal \ --filter 'FullyQualifiedName!~RateLimitTests'
+          dotnet test api.tests/api.tests.csproj -c Release -v minimal \
+            --filter 'FullyQualifiedName!~RateLimitTests' \
             /p:CollectCoverage=true \
             /p:CoverletOutputFormat=cobertura \
             "/p:ExcludeByFile=**/Migrations/*"
@@ -35,3 +35,24 @@ jobs:
         with:
           name: coverage
           path: api.tests/TestResults/**/coverage.cobertura.xml
+
+  ratelimit_tests:
+    needs: build_test
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Run ONLY RateLimitTests (non-blocking)
+        run: dotnet test api.tests/api.tests.csproj -c Release -v minimal --filter 'FullyQualifiedName~RateLimitTests'
