@@ -126,6 +126,20 @@ builder.Services.AddRateLimiter(options => {
 
 var app = builder.Build();
 
+// === Security Headers Middleware ===
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    context.Response.Headers["Content-Security-Policy"] = "object-src 'none'; form-action 'self'; frame-ancestors 'none'";
+    context.Response.Headers["Cross-Origin-Opener-Policy"] = "same-origin";
+    context.Response.Headers["Cross-Origin-Embedder-Policy"] = "credentialless";
+    context.Response.Headers["Cross-Origin-Resource-Policy"] = "same-site";
+    await next();
+});
+
+
 
 
 app.UseMiddleware<api.Infra.CorrelationIdMiddleware>();
@@ -147,3 +161,4 @@ app.MapGet("/health", () => Results.Ok(new { ok = true, ts = DateTime.UtcNow }))
 
 app.Run();
 public partial class Program { }
+
