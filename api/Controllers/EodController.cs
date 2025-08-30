@@ -11,7 +11,7 @@ namespace api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-[EnableRateLimiting("api")]
+// [EnableRateLimiting("api")]
     public class EodController : ControllerBase
     {
         private readonly AppDbContext _db;

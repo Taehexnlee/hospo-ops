@@ -6,7 +6,7 @@ namespace api.Controllers;
 
 [ApiController]
 [Route("api/test-validation")]
-[EnableRateLimiting("api")]
+// [EnableRateLimiting("api")]
 public class TestValidationController : ControllerBase
 {
     [HttpPost]

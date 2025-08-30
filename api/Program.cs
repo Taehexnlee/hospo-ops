@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using System;
 using System.Collections.Generic;
 using OpenTelemetry.Trace;
@@ -114,7 +115,7 @@ builder.Services.AddRateLimiter(options => {
       RateLimitPartition.GetFixedWindowLimiter(
         partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anon",
         factory: key => new FixedWindowRateLimiterOptions {
-          PermitLimit = 30,
+          PermitLimit = 5,
           Window = TimeSpan.FromSeconds(10),
           AutoReplenishment = true,
           QueueLimit = 0
@@ -126,25 +127,21 @@ builder.Services.AddRateLimiter(options => {
 var app = builder.Build();
 
 
+
 app.UseMiddleware<api.Infra.CorrelationIdMiddleware>();
 app.UseMiddleware<api.Infra.ApiKeyAuthMiddleware>();
 app.UseSecurityHeaders();
 app.UseCors("default");
 app.UseSerilogRequestLogging();
-app.UseRateLimiter();
-
 app.UseMiddleware<api.Infra.GlobalExceptionMiddleware>();
 app.UseCors("dev");
 app.UseMiddleware<DevApiKeyMiddleware>();
 app.UseSerilogRequestLogging();
-
-app.UseRateLimiter();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { ok = true, ts = DateTime.UtcNow }));
 

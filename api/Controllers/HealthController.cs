@@ -5,7 +5,7 @@ namespace api.Controllers;
 
 [ApiController]
 [Route("health2")]
-[EnableRateLimiting("api")]
+// [EnableRateLimiting("api")]
 public class HealthController : ControllerBase
 {
     [HttpGet]

@@ -10,7 +10,7 @@ namespace api.Controllers;
 
 [ApiController]
 [Route("square/webhook")]
-[EnableRateLimiting("api")]
+// [EnableRateLimiting("api")]
 public class SquareWebhookController(AppDbContext db, IConfiguration cfg, ILogger<SquareWebhookController> logger) : ControllerBase
 {
     [HttpPost]
