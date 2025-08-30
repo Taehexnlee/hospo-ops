@@ -25,6 +25,8 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection("Api"));
+
 // Serilog (optional)
 builder.Host.UseSerilog((ctx, cfg) =>
 {
@@ -125,6 +127,7 @@ var app = builder.Build();
 
 
 app.UseMiddleware<api.Infra.CorrelationIdMiddleware>();
+app.UseMiddleware<api.Infra.ApiKeyAuthMiddleware>();
 app.UseSecurityHeaders();
 app.UseCors("default");
 app.UseSerilogRequestLogging();
