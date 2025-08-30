@@ -16,8 +16,6 @@ using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using api.Data;
-
-// === Serilog 초기화 ===
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
     .Enrich.FromLogContext()
@@ -25,23 +23,15 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.WithProcessId()
     .Enrich.WithThreadId()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] ({CorrelationId}) {SourceContext} {Message:lj}{NewLine}{Exception}")
-    .CreateLogger();
-
-var builder = WebApplication.CreateBuilder(args);
-builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection("Api"));
-
-// Serilog
+    .CreateLogger();var builder = WebApplication.CreateBuilder(args);
+builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection("Api"));// Serilog (optional)
 builder.Host.UseSerilog((ctx, cfg) =>
 {
     cfg.MinimumLevel.Information();
     cfg.Enrich.FromLogContext();
     cfg.WriteTo.Console();
-});
-
-// === Database 설정 ===
-var cs = builder.Configuration.GetConnectionString("Default")
-         ?? "Data Source=hospoops.dev.db";
-
+});var cs = builder.Configuration.GetConnectionString("Default")
+         ?? "Data Source=hospoops.dev.db";// Dev => SQLite, Prod => SQL Server
 if (builder.Environment.IsDevelopment() ||
     cs.TrimStart().StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase))
 {
@@ -50,26 +40,18 @@ if (builder.Environment.IsDevelopment() ||
 else
 {
     builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlServer(cs));
-}
-
-// === MVC ===
-builder.Services.AddControllers().AddJsonOptions(o =>
-{
-    o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-});
-
-// === OpenTelemetry (Tracing + Metrics) ===
+}// MVC
+builder.Services.AddControllers().AddJsonOptions(o => { o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; });// === OpenTelemetry (Tracing + Metrics) ===
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(rb => rb.AddService(serviceName: "hospo-ops", serviceVersion: "1.0.0"))
     .WithTracing(b =>
     {
-        b.AddAspNetCoreInstrumentation(o =>
-        {
-            o.RecordException = true;
-            o.Filter = ctx =>
-                !ctx.Request.Path.StartsWithSegments("/health") &&
-                !ctx.Request.Path.StartsWithSegments("/swagger");
-        });
+        b.AddAspNetCoreInstrumentation(o => {
+    o.RecordException = true;
+    o.Filter = ctx =>
+        !ctx.Request.Path.StartsWithSegments("/health") &&
+        !ctx.Request.Path.StartsWithSegments("/swagger");
+});
         b.AddHttpClientInstrumentation();
         if (builder.Environment.IsDevelopment())
         {
@@ -80,89 +62,61 @@ builder.Services.AddOpenTelemetry()
     {
         m.AddAspNetCoreInstrumentation();
         m.AddHttpClientInstrumentation();
-        if (builder.Environment.IsDevelopment())
-        {
+        if (builder.Environment.IsDevelopment()) {
             m.AddConsoleExporter();
-        }
-        else
-        {
+        } else {
             m.AddOtlpExporter();
         }
     });
-// === /OpenTelemetry ===
-
-// === CORS 정책 ===
-builder.Services.AddCors(o => o.AddPolicy("dev", p => p
+// === /OpenTelemetry ===builder.Services.AddCors(o => o.AddPolicy("dev", p => p
     .WithOrigins("http://localhost:3000")
     .AllowAnyHeader()
     .AllowAnyMethod()
-));
-
-// === FluentValidation ===
-builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-
-// === Swagger ===
+));// ✅ FluentValidation v11 권장 등록 방식
+builder.Services.AddFluentValidationAutoValidation();           // ModelState 자동 검증
+builder.Services.AddValidatorsFromAssemblyContaining<Program>(); // 어셈블리 스캔// Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "HospoOps API", Version = "v1" });
-    c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
-    {
-        Description = "Provide your X-Api-Key",
-        In = ParameterLocation.Header,
-        Name = "X-Api-Key",
-        Type = SecuritySchemeType.ApiKey
-    });
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement {
-      { new OpenApiSecurityScheme {
-          Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ApiKey" }
-        }, new string[] {} }
-    });
-});
-
-// === RateLimiter ===
-builder.Services.AddRateLimiter(options =>
-{
+builder.Services.AddSwaggerGen(c => {
+  c.SwaggerDoc("v1", new OpenApiInfo { Title = "HospoOps API", Version = "v1" });
+  c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme {
+    Description = "Provide your X-Api-Key",
+    In = ParameterLocation.Header,
+    Name = "X-Api-Key",
+    Type = SecuritySchemeType.ApiKey
+  });
+  c.AddSecurityRequirement(new OpenApiSecurityRequirement {
+    { new OpenApiSecurityScheme {
+        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ApiKey" }
+      }, new string[] {} }
+  });
+});builder.Services.AddRateLimiter(options => {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy("api", httpContext =>
       RateLimitPartition.GetFixedWindowLimiter(
         partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anon",
-        factory: key => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 5,
-            Window = TimeSpan.FromSeconds(10),
-            AutoReplenishment = true,
-            QueueLimit = 0
+        factory: key => new FixedWindowRateLimiterOptions {
+          PermitLimit = 5,
+          Window = TimeSpan.FromSeconds(10),
+          AutoReplenishment = true,
+          QueueLimit = 0
         }
       )
     );
-});
+  });var app = builder.Build();app.UseCors("ApiCors");
 
-var app = builder.Build();
-
-// === Preflight(OPTIONS) 분기 ===
-// 인증/인가/ApiKey 미들웨어를 타지 않고 204 응답
+// ---- Preflight branch: allow OPTIONS without API key ----
 app.UseWhen(ctx => Microsoft.AspNetCore.Http.HttpMethods.IsOptions(ctx.Request.Method), branch =>
 {
-    branch.UseCors("dev");
+    branch.UseCors("ApiCors");
     branch.Run(context =>
     {
-        context.Response.StatusCode = StatusCodes.Status204NoContent;
-        return Task.CompletedTask;
+        context.Response.StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status204NoContent;
+        return System.Threading.Tasks.Task.CompletedTask;
     });
 });
+// ---- end preflight branch ----
 
-// === 공통 CORS ===
-app.UseCors("dev");
-
-// === 상관관계 ID 미들웨어 ===
-app.UseMiddleware<api.Infra.CorrelationIdMiddleware>();
-
-// === 요청 로깅 ===
-app.UseSerilogRequestLogging();
-
-// === Security Headers ===
+// === Security Headers Middleware ===
 app.Use(async (context, next) =>
 {
     context.Response.Headers["X-Frame-Options"] = "DENY";
@@ -173,26 +127,20 @@ app.Use(async (context, next) =>
     context.Response.Headers["Cross-Origin-Embedder-Policy"] = "credentialless";
     context.Response.Headers["Cross-Origin-Resource-Policy"] = "same-site";
     await next();
-});
-app.UseSecurityHeaders();
-
-// === RateLimiter (선택) ===
-// app.UseRateLimiter();
-
-// === API Key 인증 미들웨어 ===
+});app.UseMiddleware<api.Infra.CorrelationIdMiddleware>();
 app.UseMiddleware<api.Infra.ApiKeyAuthMiddleware>();
-
-// === 개발 환경 전용 ===
+app.UseSecurityHeaders();
+app.UseCors("default");
+app.UseSerilogRequestLogging();
+app.UseMiddleware<api.Infra.GlobalExceptionMiddleware>();
+app.UseCors("dev");
+app.UseMiddleware<DevApiKeyMiddleware>();
+app.UseSerilogRequestLogging();
 if (app.Environment.IsDevelopment())
 {
-    app.UseMiddleware<DevApiKeyMiddleware>();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-// === 엔드포인트 ===
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { ok = true, ts = DateTime.UtcNow }));
-
-app.Run();
+app.MapGet("/health", () => Results.Ok(new { ok = true, ts = DateTime.UtcNow }));app.Run();
 public partial class Program { }
