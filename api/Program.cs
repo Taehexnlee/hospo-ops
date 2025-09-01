@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System;
 using System.Collections.Generic;
 using OpenTelemetry.Trace;
@@ -29,6 +30,7 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection("Api"));
+builder.Services.AddProblemDetails(); // RFC7807
 
 // Serilog
 builder.Host.UseSerilog((ctx, cfg) =>
@@ -120,6 +122,10 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 // === Swagger ===
 builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<api.Data.AppDbContext>();
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "HospoOps API", Version = "v1" });
@@ -136,7 +142,6 @@ builder.Services.AddSwaggerGen(c =>
         }, new string[] {} }
     });
 });
-
 // === RateLimiter ===
 builder.Services.AddRateLimiter(options =>
 {
@@ -157,6 +162,11 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+app.UseHttpsRedirection();
 // === Preflight(OPTIONS) 분기 ===
 // 인증/인가/ApiKey 미들웨어를 타지 않고 204 응답
 app.UseWhen(ctx => Microsoft.AspNetCore.Http.HttpMethods.IsOptions(ctx.Request.Method), branch =>
@@ -176,7 +186,16 @@ app.UseCors("dev");
 app.UseMiddleware<api.Infra.CorrelationIdMiddleware>();
 
 // === 요청 로깅 ===
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(opts =>
+{
+    opts.EnrichDiagnosticContext = (diag, http) =>
+    {
+        if (http.Request.Headers.TryGetValue("X-Api-Key", out var _))
+        {
+            diag.Set("X-Api-Key", "***redacted***");
+        }
+    };
+});
 
 // === Security Headers ===
 app.Use(async (context, next) =>
