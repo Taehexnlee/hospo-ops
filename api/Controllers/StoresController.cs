@@ -8,6 +8,7 @@ namespace api.Controllers;
 
 [ApiController]
 [Route("api/stores")]
+[EnableRateLimiting("api")]
 // [EnableRateLimiting("api")]
 public class StoresController(AppDbContext db) : ControllerBase
 {
