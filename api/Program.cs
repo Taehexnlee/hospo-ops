@@ -92,11 +92,27 @@ builder.Services.AddOpenTelemetry()
 // === /OpenTelemetry ===
 
 // === CORS 정책 ===
-builder.Services.AddCors(o => o.AddPolicy("dev", p => p
-    .WithOrigins("http://localhost:3000")
-    .AllowAnyHeader()
-    .AllowAnyMethod()
-));
+builder.Services.AddCors(o =>
+{
+    // dev: localhost 전용
+    o.AddPolicy("dev", p => p
+        .WithOrigins("http://localhost:3000")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+    );
+
+    // default: 운영용 화이트리스트
+    var allowed = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+    o.AddPolicy("default", p =>
+    {
+        if (allowed.Length > 0) p.WithOrigins(allowed);
+        else p.DisallowCredentials().WithOrigins();
+
+        p.WithHeaders("X-Api-Key", "Content-Type")
+         .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+         .WithExposedHeaders("X-Correlation-Id", "X-RateLimit-Limit", "X-RateLimit-Window", "Retry-After");
+    });
+});
 
 // === FluentValidation ===
 builder.Services.AddFluentValidationAutoValidation();
